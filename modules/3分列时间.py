@@ -1,11 +1,11 @@
 import pandas as pd
 import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
+import os
 
-# 输入文件路径（之前生成的按日期分表的文件）
-input_file = '../temp_files/按日期分表的处理打卡数据.xlsx'
-# 输出文件路径
-output_file = '../temp_files/按打卡时间分列的打卡数据.xlsx'
+current_dir = os.path.dirname(os.path.abspath(__file__))
+input_file = os.path.join(current_dir, '../temp_files/按日期分表的处理打卡数据.xlsx')
+output_file = os.path.join(current_dir, '../temp_files/按打卡时间分列的打卡数据.xlsx')
 
 # 加载工作簿
 wb = openpyxl.load_workbook(input_file)

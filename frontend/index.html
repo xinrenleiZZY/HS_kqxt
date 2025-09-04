@@ -507,6 +507,7 @@
                     
                     <div class="card p-6 space-y-6">
                         <!-- 上传区域 -->
+                         <!-- 在frontend/index.html中添加 -->
                         <div class="border-2 border-dashed border-light-2 rounded-lg p-8 text-center hover:border-primary transition-colors">
                             <i class="fa fa-file-excel-o text-4xl text-success mb-4"></i>
                             <h3 class="font-medium mb-2">上传Excel文件</h3>
@@ -1322,51 +1323,56 @@
                     
                     uploadedFilename.textContent = `已上传: ${file.name}`;
                     uploadedFilename.classList.remove('hidden');
-                    processBtn.disabled = false;
-                    downloadBtn.disabled = true;
-                    // 存储文件到全局变量
-                    window.uploadedExcelFile = file;
+                     // 触发Streamlit的文件上传组件
+                    const streamlitFileInput = window.parent.document.querySelector('input[type="file"][accept=".xlsx,.xls"]');
+                    if (streamlitFileInput) {
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        streamlitFileInput.files = dataTransfer.files;
+                        streamlitFileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                 }
             });
             
             // 处理Excel按钮点击
-            processBtn.addEventListener('click', async () => {
-                if (!window.uploadedExcelFile) return;
-                
-                processStatus.classList.remove('hidden');
-                processMessage.textContent = '正在处理文件...';
-                processBtn.disabled = true;
-                
-                try {
-                    // 构造FormData传递文件
-                    const formData = new FormData();
-                    formData.append('excel_file', window.uploadedExcelFile);
-                    
-                    // 调用后端处理接口
-                    const response = await fetch('/process_excel', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        processMessage.textContent = '文件处理完成，可点击导出';
-                        downloadBtn.disabled = false;
-                        window.processedFileId = result.file_id;
-                    } else {
-                        processMessage.textContent = `处理失败: ${result.error}`;
-                    }
-                } catch (error) {
-                    processMessage.textContent = `处理出错: ${error.message}`;
+            processBtn.addEventListener('click', () => {
+                const streamlitProcessBtn = window.parent.document.querySelector('button:has(+ div > p:contains("处理Excel文件"))');
+                if (streamlitProcessBtn) {
+                    streamlitProcessBtn.click();
                 }
             });
 
-            // 下载Excel按钮点击
+           // 下载按钮点击事件（复用原逻辑）
             downloadBtn.addEventListener('click', () => {
-                if (!window.processedFileId) return;
-                // 触发下载
-                window.location.href = `/download_excel?file_id=${window.processedFileId}`;
+                const streamlitDownloadBtn = window.parent.document.querySelector('button[aria-label="下载处理结果"]');
+                if (streamlitDownloadBtn) {
+                    streamlitDownloadBtn.click();
+                }
             });
+
+             // 状态同步定时器
+            setInterval(() => {
+                const backendData = window.backendData || {};
+                const excelStatus = backendData.excel_status || {};
+                
+                // 更新按钮状态
+                processBtn.disabled = !excelStatus.has_uploaded || excelStatus.processing;
+                downloadBtn.disabled = !excelStatus.processed;
+                
+                // 更新状态显示
+                if (excelStatus.processing) {
+                    processStatus.classList.remove('hidden');
+                    processMessage.textContent = '正在处理文件...';
+                } else if (excelStatus.processed) {
+                    processStatus.classList.remove('hidden');
+                    processMessage.textContent = '处理完成，可点击导出';
+                } else if (excelStatus.has_uploaded) {
+                    processStatus.classList.remove('hidden');
+                    processMessage.textContent = '文件已上传，请点击处理';
+                } else {
+                    processStatus.classList.add('hidden');
+                }
+            }, 500);
         }
 
         // 初始化工时统计图表

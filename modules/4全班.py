@@ -2,11 +2,12 @@ import pandas as pd
 import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
 from datetime import datetime, timedelta
+import os
 
-# 输入文件路径
-input_file = '../temp_files/按打卡时间分列的打卡数据.xlsx'
-# 输出文件路径
-output_file = '../temp_files/全班次处理后的打卡数据.xlsx'
+current_dir = os.path.dirname(os.path.abspath(__file__))
+input_file = os.path.join(current_dir, '../temp_files/按打卡时间分列的打卡数据.xlsx')
+output_file = os.path.join(current_dir, '../temp_files/全班次处理后的打卡数据.xlsx')
+
 
 # 系统休息时间：次日05:00
 SYSTEM_REST_TIME = datetime.strptime("05:00", "%H:%M").time()

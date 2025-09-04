@@ -1,10 +1,10 @@
 import pandas as pd
 import openpyxl
+import os
 
-# 输入文件路径（处理后的打卡数据）
-input_file = '../temp_files/全班次处理后的打卡数据.xlsx'
-# 输出文件路径（汇总结果）
-output_file = '../temp_files/打卡数据汇总统计.xlsx'
+current_dir = os.path.dirname(os.path.abspath(__file__))
+input_file = os.path.join(current_dir, '../temp_files/全班次处理后的打卡数据.xlsx')
+output_file = os.path.join(current_dir, '../temp_files/打卡数据汇总统计.xlsx')
 
 # 读取工作簿中的所有工作表
 xls = pd.ExcelFile(input_file)

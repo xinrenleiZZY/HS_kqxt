@@ -1,7 +1,9 @@
 import pandas as pd
+import os
 
 # 读取Excel文件
-file_path = '../temp_files/原始文件.xlsx'
+current_dir = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(current_dir, '../temp_files/原始文件.xlsx')
 xls = pd.ExcelFile(file_path)
 
 # 获取第一个工作表的名称作为tm值
@@ -13,7 +15,7 @@ print(f"获取到的工作表前缀（第一个工作表名称）: {tm}")
 df = pd.read_excel(xls, sheet_name=first_sheet_name)
 
 # 创建一个新的Excel写入器
-output_file = '../temp_files/按日期分表的打卡数据.xlsx'
+output_file = os.path.join(current_dir, '../temp_files/按日期分表的打卡数据.xlsx')
 with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
     # 首先写入原始数据作为第一个工作表
     df.to_excel(writer, sheet_name='原始数据', index=False)

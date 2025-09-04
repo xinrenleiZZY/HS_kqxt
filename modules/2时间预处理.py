@@ -1,5 +1,6 @@
 import pandas as pd
 from datetime import datetime
+import os
 
 
 def process_morning_shift_time(time_str):
@@ -77,6 +78,9 @@ def process_excel_file(file_path, output_path):
 
 # 使用示例
 if __name__ == "__main__":
-    input_file = "../temp_files/按日期分表的打卡数据.xlsx"  # 输入文件路径
-    output_file = "../temp_files/按日期分表的处理打卡数据.xlsx"  # 输出文件路径
+    
+    # 读取Excel文件
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(current_dir, '../temp_files/按日期分表的打卡数据.xlsx')
+    output_file = os.path.join(current_dir, '../temp_files/按日期分表的处理打卡数据.xlsx')
     process_excel_file(input_file, output_file)

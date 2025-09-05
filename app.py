@@ -87,7 +87,7 @@ def process_excel_file(output_format="xlsx"):
         if file_ext in ['.xlsx', '.xls']:
             scripts = [
                 "1分割.py", "2时间预处理.py", 
-                "3分列时间.py", "4全班.py", "5汇总.py"
+                "3分列时间.py", "4全班.py","66.py", "6.py"
             ]
         elif file_ext == '.csv':
             scripts = [

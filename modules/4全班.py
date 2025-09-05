@@ -146,7 +146,7 @@ def process_morning_shift(row):
 
             result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
         else:
-            result['下班卡类型'] = "正常下班卡"
+            result['下班卡类型'] = "17:30下班卡"
     else:
         result['下班卡类型'] = "缺卡"
 
@@ -240,7 +240,7 @@ def process_afternoon_shift(row):
 
             result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
         else:
-            result['下班卡类型'] = "正常下班卡"
+            result['下班卡类型'] = "22:00下班卡"
     else:
         result['下班卡类型'] = "缺卡"
 
@@ -278,7 +278,7 @@ def process_night_shift(row):
 
     # 确定有效的上班卡
     valid_night_punch = None
-    for p in ['first', 'second']:
+    for p in ['first']:
         if punches[p]:
             valid_night_punch = punches[p]
             break
@@ -300,7 +300,7 @@ def process_night_shift(row):
     work_end = datetime.strptime("02:00", "%H:%M").time()
 
     valid_morning_punch = None
-    for p in ['third', 'fourth']:
+    for p in ['second']:
         if punches[p]:
             valid_morning_punch = punches[p]
 
@@ -320,7 +320,7 @@ def process_night_shift(row):
 
             result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
         else:
-            result['下班卡类型'] = "正常下班卡"
+            result['下班卡类型'] = "02:00下班卡"
     else:
         result['下班卡类型'] = "缺卡"
 

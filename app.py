@@ -4,9 +4,11 @@ import os
 import json
 import subprocess
 import uuid
+import time
 from datetime import datetime, timedelta
 from modules import auth, employees, rules, reports
 from io import BytesIO
+import glob
 
 # 确保数据目录和临时目录存在
 os.makedirs('data', exist_ok=True)
@@ -65,7 +67,7 @@ def clean_temp_files(max_age=3600):
             os.remove(file_path)
 
 
-def process_excel_file():
+def process_excel_file(output_format="xlsx"):
     """处理已上传的Excel文件"""
     if not st.session_state.get("uploaded_file"):
         return {"status": "error", "error": "未找到上传的文件"}
@@ -73,16 +75,32 @@ def process_excel_file():
     try:
         st.session_state["processing"] = True
         
-        # 保存上传的文件
-        original_path = os.path.join(TEMP_DIR, "原始文件.xlsx")
+        # # 保存上传的文件
+        # original_path = os.path.join(TEMP_DIR, "原始文件.xlsx")
+        # with open(original_path, "wb") as f:
+        #     f.write(st.session_state["uploaded_file"].getbuffer())
+        # 保存上传的文件（根据原始格式保存）
+        file_ext = os.path.splitext(st.session_state["uploaded_file"].name)[1].lower()
+        original_path = os.path.join(TEMP_DIR, f"原始文件{file_ext}")
         with open(original_path, "wb") as f:
             f.write(st.session_state["uploaded_file"].getbuffer())
-
+        if file_ext in ['.xlsx', '.xls']:
+            scripts = [
+                "1分割.py", "2时间预处理.py", 
+                "3分列时间.py", "4全班.py", "5汇总.py"
+            ]
+        elif file_ext == '.csv':
+            scripts = [
+                "1_csv分割.py", "2_csv处理.py",  # 假设的CSV处理脚本
+                "3_csv汇总.py"
+            ]
+        else:
+            raise Exception(f"不支持的文件格式: {file_ext}")
         # 执行处理脚本
-        scripts = [
-            "1分割.py", "2时间预处理.py", 
-            "3分列时间.py", "4全班.py", "5汇总.py"
-        ]
+        # scripts = [
+        #     "1分割.py", "2时间预处理.py", 
+        #     "3分列时间.py", "4全班.py", "5汇总.py"
+        # ]
         
         for script in scripts:
             result = subprocess.run(
@@ -94,16 +112,31 @@ def process_excel_file():
             # 输出脚本执行日志（调试用）
             print(f"脚本 {script} 执行结果: {result.stdout}")
 
-        # 生成文件ID并存储路径
+        # # 生成文件ID并存储路径
+        # file_id = str(uuid.uuid4())
+        # final_file_path = os.path.join(TEMP_DIR, "打卡数据汇总统计.xlsx")
+        # processed_files[file_id] = final_file_path
+        # 根据输出格式生成文件
         file_id = str(uuid.uuid4())
-        final_file_path = os.path.join(TEMP_DIR, "打卡数据汇总统计.xlsx")
+        if output_format == 'csv':
+            final_file_path = os.path.join(TEMP_DIR, "打卡数据汇总统计.csv")
+            # 如果原处理结果是Excel，这里可以添加转换为CSV的代码
+            # 例如使用pandas将xlsx转换为csv
+            import pandas as pd
+            excel_path = os.path.join(TEMP_DIR, "打卡数据汇总统计.xlsx")
+            if os.path.exists(excel_path):
+                df = pd.read_excel(excel_path)
+                df.to_csv(final_file_path, index=False, encoding='utf-8-sig')
+        else:
+            final_file_path = os.path.join(TEMP_DIR, "打卡数据汇总统计.xlsx")
+        
         processed_files[file_id] = final_file_path
 
-        # 更新状态
+        # 更新状态s
         st.session_state["processing"] = False
         st.session_state["processed_file_id"] = file_id
         clean_temp_files()  # 清理过期文件
-        return {"status": "success", "file_id": file_id}
+        return {"status": "success", "file_id": file_id, "format": output_format}
 
     except subprocess.CalledProcessError as e:
         st.session_state["processing"] = False
@@ -111,7 +144,6 @@ def process_excel_file():
     except Exception as e:
         st.session_state["processing"] = False
         return {"status": "error", "error": str(e)}
-
 
 def get_processed_file(file_id):
     """获取处理后的文件数据"""
@@ -124,6 +156,31 @@ def get_processed_file(file_id):
     with open(file_path, "rb") as f:
         return BytesIO(f.read())
 
+# 新增函数：获取temp_files目录中的所有文件
+def get_temp_files():
+    """获取临时目录中的所有文件列表"""
+    files = glob.glob(os.path.join(TEMP_DIR, '*'))
+    return [os.path.basename(file) for file in files if os.path.isfile(file)]
+
+# 新增函数：下载指定的临时文件
+def download_temp_file(filename):
+    """下载指定的临时文件"""
+    file_path = os.path.join(TEMP_DIR, filename)
+    if not os.path.exists(file_path) or not os.path.isfile(file_path):
+        return None
+    
+    # 根据文件扩展名确定MIME类型
+    if filename.endswith('.xlsx'):
+        mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif filename.endswith('.xls'):
+        mime = "application/vnd.ms-excel"
+    elif filename.endswith('.csv'):
+        mime = "text/csv"
+    else:
+        mime = "application/octet-stream"
+    
+    with open(file_path, "rb") as f:
+        return BytesIO(f.read()), mime
 
 def main():
     st.set_page_config(
@@ -167,13 +224,23 @@ def main():
         st.session_state["process_result"] = result
         if result["status"] == "success":
             st.success("文件处理完成！")
+            # 强制页面刷新以更新状态
+            time.sleep(1)  # 等待文件处理完成
+            # 显示下载按钮
+            file_id = result["file_id"]
+            excel_data = get_processed_file(file_id)
+            st.download_button(
+                label="下载处理结果",
+                data=excel_data,
+                file_name="打卡数据汇总统计.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
         else:
             st.error(f"处理失败: {result['error']}")
 
     # 侧边栏控制区
     with st.sidebar:
         st.subheader("Excel打卡记录处理")
-        
         # 文件上传组件
         st.file_uploader(
             "选择Excel文件",
@@ -205,6 +272,29 @@ def main():
                     key="download_btn"
                 )
 
+        # 临时文件浏览器
+        st.subheader("临时文件管理")
+        temp_files = get_temp_files()
+        if temp_files:
+            selected_file = st.selectbox("选择要下载的文件", temp_files)
+            file_data, mime = download_temp_file(selected_file)
+            if file_data:
+                st.download_button(
+                    label=f"下载 {selected_file}",
+                    data=file_data,
+                    file_name=selected_file,
+                    mime=mime,
+                    key=f"temp_file_{selected_file}"
+                )
+            
+            # 添加删除文件功能（可选）
+            if st.button(f"删除 {selected_file}", key=f"del_{selected_file}"):
+                os.remove(os.path.join(TEMP_DIR, selected_file))
+                st.success(f"已删除 {selected_file}")
+                st.experimental_rerun()
+        else:
+            st.info("临时目录中没有文件")
+
     # 准备前端数据
     backend_data = get_backend_data()
     data_script = f"window.backendData = {json.dumps(backend_data)};"
@@ -219,16 +309,18 @@ def main():
         // 绑定文件上传区域点击事件到Streamlit上传组件
         document.getElementById('file-upload-area')?.addEventListener('click', () => {
             // 触发Streamlit的文件上传组件点击
-            const streamlitUploader = window.parent.document.querySelector('input[type="file"][data-testid="stFileUploader"]');
+            const streamlitUploader = window.parent.document.querySelector('.stFileUploader input[type="file"]');
             if (streamlitUploader) {
                 streamlitUploader.click();
             }
+            
         });
 
         // 绑定处理按钮点击事件到Streamlit处理按钮
         document.getElementById('process-excel-btn')?.addEventListener('click', () => {
             // 触发Streamlit的处理按钮点击
-            const streamlitProcessBtn = window.parent.document.querySelector('button:has(div p:contains("处理Excel文件"))');
+            const buttons = window.parent.document.querySelectorAll('button');
+            const streamlitProcessBtn = Array.from(buttons).find(btn => btn.textContent.includes('处理Excel文件'));
             if (streamlitProcessBtn) {
                 streamlitProcessBtn.click();
             }
@@ -237,8 +329,11 @@ def main():
         // 绑定下载按钮点击事件到Streamlit下载按钮（已存在，可保留）
         document.getElementById('download-excel-btn')?.addEventListener('click', () => {
             if (window.backendData?.excel_status?.processed) {
-                const streamlitDownloadBtn = window.parent.document.querySelector('button[aria-label="下载处理结果"]');
-                if (streamlitDownloadBtn) streamlitDownloadBtn.click();
+                const buttons = window.parent.document.querySelectorAll('button');
+                const streamlitDownloadBtn = Array.from(buttons).find(btn => btn.textContent.includes('下载处理结果'));
+                if (streamlitDownloadBtn) {streamlitDownloadBtn.click() } else {
+                    console.log('未找到下载按钮，请检查Streamlit组件');
+                };
             }
         });
 
@@ -298,7 +393,13 @@ def main():
                 processBtn.disabled = !excelStatus.has_uploaded || excelStatus.processing;
             }
             if (downloadBtn) {
-                downloadBtn.disabled = !excelStatus.processed;
+                if (excelStatus.processed) {
+                    downloadBtn.classList.remove('hidden');
+                    downloadBtn.disabled = false;
+                } else {
+                    downloadBtn.classList.add('hidden');
+                    downloadBtn.disabled = true;
+                }
             }
 
             // 更新处理状态显示

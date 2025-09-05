@@ -2,6 +2,9 @@ import sqlite3
 import os
 from hashlib import sha256
 import streamlit as st
+# 添加json模块导入
+import json
+from datetime import datetime, timedelta
 # 在登录验证成功后添加Cookie存储
 import extra_streamlit_components as stx
 
@@ -73,14 +76,6 @@ def login_page():
     """显示登录页面并处理登录逻辑"""
     # 保存到session_state
     st.session_state["logged_in"] = True
-     # 添加Cookie存储（有效期1天）
-    cookie_manager = stx.CookieManager()
-    cookie_manager.set("user_login", json.dumps({
-        "username": user[1],
-        "role": user[2]
-    }), key="login_cookie", expires_at=datetime.now() + timedelta(days=1))
-    
-    st.success(f"登录成功，欢迎回来 {user[1]}!")
     st.rerun()
     # 自定义登录页面样式，确保响应式显示
     st.markdown("""
@@ -144,7 +139,12 @@ def login_page():
                         st.session_state["user_id"] = user[0]
                         st.session_state["username"] = user[1]
                         st.session_state["role"] = user[2]
-                        
+                         # 添加Cookie存储（有效期1天）
+                        cookie_manager = stx.CookieManager()
+                        cookie_manager.set("user_login", json.dumps({
+                            "username": user[1],
+                            "role": user[2]
+                        }), key="login_cookie", expires_at=datetime.now() + timedelta(days=1))
                         st.success(f"登录成功，欢迎回来 {user[1]}!")
                         st.rerun()  # 重新加载页面
                     else:

@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from modules import auth, employees, rules, reports
 from io import BytesIO
 import glob
+import sys
 
 # 确保数据目录和临时目录存在
 os.makedirs('data', exist_ok=True)
@@ -104,7 +105,7 @@ def process_excel_file(output_format="xlsx"):
         
         for script in scripts:
             result = subprocess.run(
-                ["python", os.path.join("modules", script)],
+                [sys.executable, os.path.join("modules", script)],  # 使用当前环境的Python
                 check=True,
                 capture_output=True,
                 text=True

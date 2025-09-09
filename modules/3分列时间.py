@@ -2,6 +2,7 @@ import pandas as pd
 import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
 import os
+from datetime import datetime
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 input_file = os.path.join(current_dir, '../temp_files/按日期分表的处理打卡数据.xlsx')
@@ -50,6 +51,51 @@ for sheet_name in wb.sheetnames:
     for col in ['第一次打卡', '第二次打卡', '第三次打卡', '第四次打卡']:
         if col in result_df.columns:
             result_df[col] = result_df[col].str.strip()
+
+
+    # 新增：添加班次列
+    def determine_shift(row):
+        # 后勤部班次为空
+        if row.get('部门') == '后勤部':
+            return ''
+
+        first_punch = row.get('第一次打卡')
+        if not first_punch:
+            return ''
+
+        try:
+            # 解析时间
+            punch_time = datetime.strptime(first_punch, '%H:%M').time()
+            # 定义时间界限
+            noon = datetime.strptime('12:00', '%H:%M').time()
+            five_pm = datetime.strptime('17:00', '%H:%M').time()
+            ten_pm = datetime.strptime('22:00', '%H:%M').time()
+
+            # 判断班次
+            if punch_time < noon:
+                return '早班'
+            elif noon <= punch_time < five_pm:
+                return '中班'
+            elif five_pm <= punch_time < ten_pm:
+                return '晚班'
+            else:
+                return ''
+        except:
+            # 时间格式错误时返回空
+            return ''
+
+
+    # 应用函数计算班次
+    result_df['班次'] = result_df.apply(determine_shift, axis=1)
+
+    # 调整列顺序：将班次列移到第一次打卡列前面
+    cols = result_df.columns.tolist()
+    # 找到第一次打卡的索引位置
+    first_punch_idx = cols.index('第一次打卡')
+    # 移除班次列并插入到第一次打卡前面
+    cols.remove('班次')
+    cols.insert(first_punch_idx, '班次')
+    result_df = result_df[cols]
 
     # 创建新工作表并写入处理后的数据
     new_ws = new_wb.create_sheet(title=sheet_name)

@@ -3,8 +3,10 @@ from datetime import datetime
 import os
 
 
-def process_morning_shift_time(time_str):
-    """处理早班打卡时间，空值直接返回不处理"""
+def process_checkin_time(time_str):
+    """处理打卡时间，空值直接返回不处理
+    规则：如果第一次打卡时间小于12:00则处理，大于12:00则不处理
+    """
     # 检查是否为空值或空字符串
     if pd.isna(time_str) or str(time_str).strip() == '':
         return time_str
@@ -20,8 +22,15 @@ def process_morning_shift_time(time_str):
     except ValueError:
         return time_str  # 格式错误时返回原始值
 
-    # 定义时间界限
+    # 获取第一次打卡时间，判断是否需要处理
+    first_checkin = min(time_objs)  # 最早的打卡时间
     noon = datetime.strptime('12:00', '%H:%M')
+
+    # 如果第一次打卡时间大于12:00，不处理
+    if first_checkin > noon:
+        return time_str
+
+    # 定义时间界限
     end_limit = datetime.strptime('17:30', '%H:%M')
 
     # 分类时间
@@ -63,12 +72,11 @@ def process_excel_file(file_path, output_path):
             # 读取工作表数据
             df = pd.read_excel(xls, sheet_name=sheet)
 
-            # 检查是否存在"班次"和"打卡时间"列
-            if '班次' in df.columns and '打卡时间' in df.columns:
-                # 处理早班的打卡时间
-                mask = (df['班次'] == '早班') & (df['打卡时间'].notna()) & (
-                            df['打卡时间'].astype(str).str.strip() != '')
-                df.loc[mask, '打卡时间'] = df.loc[mask, '打卡时间'].apply(process_morning_shift_time)
+            # 检查是否存在"打卡时间"列
+            if '打卡时间' in df.columns:
+                # 处理所有打卡时间（根据第一次打卡时间自动判断是否需要处理）
+                mask = (df['打卡时间'].notna()) & (df['打卡时间'].astype(str).str.strip() != '')
+                df.loc[mask, '打卡时间'] = df.loc[mask, '打卡时间'].apply(process_checkin_time)
 
             # 写入处理后的工作表
             df.to_excel(writer, sheet_name=sheet, index=False)
@@ -78,7 +86,6 @@ def process_excel_file(file_path, output_path):
 
 # 使用示例
 if __name__ == "__main__":
-    
     # 读取Excel文件
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, '../temp_files/按日期分表的打卡数据.xlsx')

@@ -1,5 +1,4 @@
 import pandas as pd
-import pandas
 import os
 
 # 读取Excel文件
@@ -18,7 +17,7 @@ df = pd.read_excel(xls, sheet_name=first_sheet_name)
 # 创建一个新的Excel写入器
 output_file = os.path.join(current_dir, '../temp_files/按日期分表的打卡数据.xlsx')
 with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-    # 首先写入原始数据作为第一个工作表
+    # 首先写入原始数据作为第一个工作表（如果原始数据中有班次列也会被保留，这里只处理分割部分）
     df.to_excel(writer, sheet_name='原始数据', index=False)
     # 统计有效日期列的数量
     valid_days = 0
@@ -27,8 +26,8 @@ with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
     for day in range(1, 100):
         # 检查该日期列是否存在（列名是数字类型）
         if day in df.columns:
-            # 选择需要的列
-            selected_columns = ['姓名', '员工ID', '部门', '班次', day]
+            # 选择需要的列（移除了'班次'列）
+            selected_columns = ['姓名', '员工ID', '部门', day]
             # 复制选定的列到新的DataFrame
             day_df = df[selected_columns].copy()
             # 将日期列重命名为'打卡时间'

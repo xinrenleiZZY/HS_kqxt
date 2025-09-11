@@ -125,6 +125,7 @@ def process_morning_shift(row):
 
     # 3. 处理下午下班打卡（17:30）
     work_end_pm = datetime.strptime("17:30", "%H:%M").time()
+    eighteen_oclock = datetime.strptime("18:00", "%H:%M").time()  # 18点判断基准
 
     valid_evening_punch = None
     for p in ['third', 'fourth']:
@@ -138,6 +139,10 @@ def process_morning_shift(row):
 
             if valid_evening_punch >= work_end_pm:
                 ot_h, ot_m = time_diff_in_hours(rounded_time, work_end_pm)
+                total_overtime = ot_h + ot_m / 60
+                # 晚于18点下班，加班时长减0.5小时
+                if valid_evening_punch > eighteen_oclock:
+                    total_overtime -= 0.5
             else:
                 hours_pm = 24 - (work_end_pm.hour + work_end_pm.minute / 60)
                 hours_am = rounded_time.hour + rounded_time.minute / 60
@@ -145,7 +150,7 @@ def process_morning_shift(row):
                 ot_h = int(total_overtime)
                 ot_m = int(round((total_overtime - ot_h) * 60))
 
-            result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
+            result['晚上加班时长(小时)'] = max(0, round(total_overtime, 1))
         else:
             result['下班卡类型'] = "17:30下班卡"
     else:
@@ -222,38 +227,41 @@ def process_afternoon_shift(row):
     system_rest_time = datetime.strptime("07:00", "%H:%M").time() # 系统休息时间：次日07:00
 
     valid_night_punch = None
-    for p in ['third', 'fourth']:
+    for p in ['fourth']:
         if punches[p]:
             valid_night_punch = punches[p]
+            
 
     if valid_night_punch:
-         # 22:00前打卡 - 正常下班
-        if valid_night_punch <= work_end_pm:
-            result['下班卡类型'] = "22:00下班卡"
-            result['晚上加班时长(小时)'] = 0.0
-
-        # 22:00后或次日5:00前打卡 - 计算加班
-        elif (valid_night_punch >= work_end_pm) or (valid_night_punch <= system_rest_time):
+        # 先判断是否为次日打卡（0:00-7:00）
+        if valid_night_punch <= system_rest_time:
             rounded_time = round_down_to_hour(valid_night_punch)
             result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡"
-
-            if valid_night_punch >= work_end_pm:
-                # 当天22:00后打卡
-                ot_h, ot_m = time_diff_in_hours(rounded_time, work_end_pm)
-            else:
-                # 次日0:00-5:00打卡
-                hours_pm = 24 - (work_end_pm.hour + work_end_pm.minute / 60)
-                hours_am = rounded_time.hour + rounded_time.minute / 60
-                total_overtime = hours_pm + hours_am
-                ot_h = int(total_overtime)
-                ot_m = int(round((total_overtime - ot_h) * 60))
-
+            # 计算跨天加班时长（22:00到次日打卡时间）
+            hours_pm = 24 - (work_end_pm.hour + work_end_pm.minute / 60)
+            hours_am = rounded_time.hour + rounded_time.minute / 60
+            total_overtime = hours_pm + hours_am
+            ot_h = int(total_overtime)
+            ot_m = int(round((total_overtime - ot_h) * 60))
             result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
+        
+        # 再判断是否为当天22:00后打卡
+        elif valid_night_punch >= work_end_pm:
+            rounded_time = round_down_to_hour(valid_night_punch)
+            result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡"
+            ot_h, ot_m = time_diff_in_hours(rounded_time, work_end_pm)
+            result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
+        
+        # 当天22:00前正常打卡
+        elif valid_night_punch <= work_end_pm:
+            result['下班卡类型'] = "22:00下班卡"
+            result['晚上加班时长(小时)'] = 0.0
+        
+        # 其他异常时间（7:00-22:00之间非加班时段）
         else:
             result['下班卡类型'] = f"{valid_night_punch.strftime('%H:%M')}（异常下班）"
-            result['晚上加班时长(小时)'] = "异常"  # 或按实际需求处理
+            result['晚上加班时长(小时)'] = "异常"
     else:
-        # 未打卡 - 下班缺卡
         result['下班卡类型'] = "缺卡"
 
     # 4. 综合打卡状态

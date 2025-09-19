@@ -152,7 +152,7 @@ def process_morning_shift(row):
 
             result['晚上加班时长(小时)'] = max(0, round(total_overtime, 1))
         else:
-            result['下班卡类型'] = "17:30下班卡"
+            result['下班卡类型'] = "17:30下班卡-早退"
     else:
         result['下班卡类型'] = "缺卡"
 
@@ -254,7 +254,7 @@ def process_afternoon_shift(row):
         
         # 当天22:00前正常打卡
         elif valid_night_punch <= work_end_pm:
-            result['下班卡类型'] = "22:00下班卡"
+            result['下班卡类型'] = "22:00下班卡-早退"
             result['晚上加班时长(小时)'] = 0.0
         
         # 其他异常时间（7:00-22:00之间非加班时段）
@@ -262,6 +262,7 @@ def process_afternoon_shift(row):
             result['下班卡类型'] = f"{valid_night_punch.strftime('%H:%M')}（异常下班）"
             result['晚上加班时长(小时)'] = "异常"
     else:
+        
         result['下班卡类型'] = "缺卡"
 
     # 4. 综合打卡状态
@@ -310,7 +311,7 @@ def process_night_shift(row):
     if valid_night_punch:
         if valid_night_punch <= work_start:
             result['上班卡类型'] = "18:00上班卡"
-        elif work_start < valid_night_punch <= absence_limit:
+        elif work_start < valid_night_punch <= work_end_limit:
             result['上班卡类型'] = "迟到"
             late_h, late_m = time_diff_in_hours(valid_night_punch, work_start)
             result['迟到时间'] = format_time_diff(late_h, late_m)

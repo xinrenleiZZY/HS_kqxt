@@ -289,6 +289,7 @@ def process_night_shift(row):
     # 解析所有打卡时间
     punches = {
         'first': parse_time(row['第一次打卡']),
+        
         'second': parse_time(row['第二次打卡']),
         'third': None,
         'fourth': None

@@ -29,11 +29,11 @@ else:
 
     combined_df = pd.concat(all_data, ignore_index=True)
 
-    # 确保必要的列存在（新增补贴加班时长列的检查）
+    # 确保必要的列存在（新增夜班补贴时长列的检查）
     required_cols = [
         '姓名', '员工ID', '部门', '班次',
         '打卡状态', '白天加班时长(小时)',
-        '晚上加班时长(小时)', '迟到时间', '补贴加班时长(小时)'  # 新增
+        '晚上加班时长(小时)', '迟到时间', '夜班补贴时长(小时)'  # 新增
     ]
     missing_cols = [col for col in required_cols if col not in combined_df.columns]
     if missing_cols:
@@ -60,13 +60,13 @@ else:
             return hours * 60 + minutes
 
 
-        # 处理加班时长（确保为数值类型，新增补贴加班时长处理）
+        # 处理加班时长（确保为数值类型，新增夜班补贴时长处理）
         combined_df['白天加班时长(小时)'] = pd.to_numeric(
             combined_df['白天加班时长(小时)'], errors='coerce').fillna(0)
         combined_df['晚上加班时长(小时)'] = pd.to_numeric(
             combined_df['晚上加班时长(小时)'], errors='coerce').fillna(0)
-        combined_df['补贴加班时长(小时)'] = pd.to_numeric(  # 新增
-            combined_df['补贴加班时长(小时)'], errors='coerce').fillna(0)
+        combined_df['夜班补贴时长(小时)'] = pd.to_numeric(  # 新增
+            combined_df['夜班补贴时长(小时)'], errors='coerce').fillna(0)
 
         # 计算迟到分钟数
         combined_df['迟到分钟数'] = combined_df['迟到时间'].apply(parse_late_time)
@@ -86,10 +86,10 @@ else:
             # 晚上加班总和
             night_ot = group['晚上加班时长(小时)'].sum()
 
-            # 新增：补贴加班总和
-            subsidy_ot = group['补贴加班时长(小时)'].sum()
+            # 新增：夜班补贴总和
+            subsidy_ot = group['夜班补贴时长(小时)'].sum()
 
-            # 出勤总工时（包含补贴加班）
+            # 出勤总工时（包含夜班补贴）
             total_hours = attendance_hours + day_ot + night_ot + subsidy_ot  # 修改
 
             # 迟到总时间（分钟转换为"X小时Y分钟"格式）
@@ -117,8 +117,8 @@ else:
                 '出勤时间': attendance_hours,
                 '白天加班': round(day_ot, 1),
                 '晚上加班': round(night_ot, 1),
-                '补贴加班': round(subsidy_ot, 1),  # 新增
                 '出勤总工时': round(total_hours, 1),
+                '夜班补贴': round(subsidy_ot, 1),  # 新增
                 '迟到总时间': late_str
             })
 
@@ -127,10 +127,10 @@ else:
         summary_df = combined_df.groupby(['姓名', '员工ID']).apply(
             lambda x: aggregate_func(x)
         ).reset_index()
-        # 调整列顺序（新增补贴加班列）
+        # 调整列顺序（新增夜班补贴列）
         summary_df = summary_df[['姓名', '员工ID', '部门', '班次',
                                  '上班天数', '出勤时间', '白天加班',
-                                 '晚上加班', '补贴加班', '出勤总工时', '迟到总时间']]  # 修改
+                                 '晚上加班', '出勤总工时','夜班补贴', '迟到总时间']]  # 修改
 
         # 保存结果
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:

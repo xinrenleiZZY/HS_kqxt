@@ -18,7 +18,7 @@ def calculate_overtime(file_path, output_path):
             # 确保"下班卡类型"列是字符串类型
             df['下班卡类型'] = df['下班卡类型'].astype(str)
 
-            # 定义函数计算补贴加班时长
+            # 定义函数计算夜班补贴时长
             def calculate_subsidy(time_str):
                 try:
                     # 尝试解析时间（假设格式为HH:MM）
@@ -44,8 +44,8 @@ def calculate_overtime(file_path, output_path):
                     # 处理无法解析的情况
                     return 0.0
 
-            # 应用函数计算补贴加班时长并添加为新列
-            df['补贴加班时长(小时)'] = df['下班卡类型'].apply(calculate_subsidy)
+            # 应用函数计算夜班补贴时长并添加为新列
+            df['夜班补贴时长(小时)'] = df['下班卡类型'].apply(calculate_subsidy)
 
             # 将处理后的工作表写入新的Excel文件
             df.to_excel(writer, sheet_name=sheet_name, index=False)

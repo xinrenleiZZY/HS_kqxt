@@ -297,7 +297,8 @@ def process_night_shift(row):
 
 
     # 1. 处理上班打卡（晚上18:00）
-    work_start = datetime.strptime("18:00", "%H:%M").time()
+    work_start = datetime.strptime("18:00", "%H:%M").time() # 晚上上班时间
+    work_start2 = datetime.strptime("20:00", "%H:%M").time() # 晚上上班时间2
     work_end_limit = datetime.strptime("23:00", "%H:%M").time() # 迟到截止时间
     absence_limit = datetime.strptime("02:00", "%H:%M").time()  # 缺勤判定时间
     absence_limit_SYSTEM_REST_TIME = datetime.strptime("09:00", "%H:%M").time()  # 次日9:00
@@ -310,13 +311,16 @@ def process_night_shift(row):
             break
 
     if valid_night_punch:
-        if valid_night_punch <= work_start:
+        if valid_night_punch <= work_start: # 18:00前打卡
             result['上班卡类型'] = "18:00上班卡"
-        elif work_start < valid_night_punch <= work_end_limit:
+        elif work_start < valid_night_punch <= work_start2: # 18:00-20:00打卡
+            rounded_time = round_down_to_hour(valid_night_punch)
+            result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}上班卡"
+        elif work_start2 < valid_night_punch <= work_end_limit: # 20:00-23:00打卡
             result['上班卡类型'] = "迟到"
             late_h, late_m = time_diff_in_hours(valid_night_punch, work_start)
             result['迟到时间'] = format_time_diff(late_h, late_m)
-        else:
+        else: # 23:00后打卡视为缺勤
             result['上班卡类型'] = "缺勤"
     else:
         # 检查是否在18:00-次日2:00未打卡

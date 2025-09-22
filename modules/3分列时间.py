@@ -69,7 +69,7 @@ for sheet_name in wb.sheetnames:
             # 定义时间界限
             noon = datetime.strptime('12:00', '%H:%M').time()
             five_pm = datetime.strptime('17:00', '%H:%M').time()
-            ten_pm = datetime.strptime('22:00', '%H:%M').time()
+            ten_pm = datetime.strptime('23:59', '%H:%M').time()
 
             # 判断班次
             if punch_time < noon:

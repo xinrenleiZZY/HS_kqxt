@@ -133,7 +133,7 @@ def process_morning_shift(row):
             valid_evening_punch = punches[p]
 
     if valid_evening_punch:
-        if (valid_evening_punch >= work_end_pm) or (valid_evening_punch <= SYSTEM_REST_TIME):
+        if (valid_evening_punch >= work_end_pm) or (valid_evening_punch <= SYSTEM_REST_TIME):   # 次日05:00->17.30
             rounded_time = round_down_to_hour(valid_evening_punch)
             result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡"
 
@@ -144,7 +144,7 @@ def process_morning_shift(row):
                 if valid_evening_punch > eighteen_oclock:
                     total_overtime -= 0.5
             else:
-                hours_pm = 24 - (work_end_pm.hour + work_end_pm.minute / 60)
+                hours_pm = 24 - (work_end_pm.hour + work_end_pm.minute / 60)    
                 hours_am = rounded_time.hour + rounded_time.minute / 60
                 total_overtime = hours_pm + hours_am
                 ot_h = int(total_overtime)
@@ -152,7 +152,10 @@ def process_morning_shift(row):
 
             result['晚上加班时长(小时)'] = max(0, round(total_overtime, 1))
         else:
-            result['下班卡类型'] = "17:30下班卡-早退"
+            if valid_evening_punch <= work_end_pm:
+                rounded_time = round_down_to_hour(valid_evening_punch)
+                result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡-早退"
+
     else:
         result['下班卡类型'] = "缺卡"
 
@@ -254,7 +257,9 @@ def process_afternoon_shift(row):
         
         # 当天22:00前正常打卡
         elif valid_night_punch <= work_end_pm:
-            result['下班卡类型'] = "22:00下班卡-早退"
+            rounded_time = round_down_to_hour(valid_night_punch)
+            result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡-早退"
+            # result['下班卡类型'] = "22:00下班卡-早退"
             result['晚上加班时长(小时)'] = 0.0
         
         # 其他异常时间（7:00-22:00之间非加班时段）

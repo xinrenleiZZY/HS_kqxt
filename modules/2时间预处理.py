@@ -13,7 +13,7 @@ def process_checkin_time(time_str):
 
     # 分割多个打卡时间
     times = [t.strip() for t in str(time_str).split(';') if t.strip()]
-    if not times:
+    if len(times) <= 4:
         return time_str
 
     # 转换为datetime对象便于比较

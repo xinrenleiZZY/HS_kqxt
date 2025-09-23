@@ -66,7 +66,7 @@ def format_time_diff(hours, minutes):
 def process_morning_shift(row):
     """处理早班打卡数据"""
     result = {
-        '上班卡类型': "", '迟到时间': "0分钟",
+        '上班卡类型': "", '迟到时间': "0分钟", '早退时间': "0分钟",  # 新增早退时间列
         '中午下班卡类型': "", '中午上班卡类型': "", '白天加班时长(小时)': "",
         '下班卡类型': "", '晚上加班时长(小时)': "", '打卡状态': ""
     }
@@ -153,7 +153,14 @@ def process_morning_shift(row):
             result['晚上加班时长(小时)'] = max(0, round(total_overtime, 1))
         else:
             if valid_evening_punch <= work_end_pm:
+                # 计算早退时间（规定下班时间 - 实际打卡时间）
                 rounded_time = round_down_to_hour(valid_evening_punch)
+                # 计算时间差（小时，向上取整确保不足1小时也按1小时计算）
+                early_h, early_m = time_diff_in_hours(work_end_pm, valid_evening_punch)
+                total_early_hours = early_h + (1 if early_m > 0 else 0)  # 分钟数大于0则进1小时
+                
+                # 仅保留小时数（0小时则显示0）
+                result['早退时间'] = f"{total_early_hours}小时"
                 result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡-早退"
 
     else:
@@ -173,7 +180,7 @@ def process_morning_shift(row):
 def process_afternoon_shift(row):
     """处理中班打卡数据"""
     result = {
-        '上班卡类型': "", '迟到时间': "0分钟",
+        '上班卡类型': "", '迟到时间': "0分钟", '早退时间': "0分钟",  # 新增早退时间列
         '中午下班卡类型': "", '中午上班卡类型': "", '白天加班时长(小时)': "",
         '下班卡类型': "", '晚上加班时长(小时)': "", '打卡状态': ""
     }
@@ -255,11 +262,17 @@ def process_afternoon_shift(row):
             ot_h, ot_m = time_diff_in_hours(rounded_time, work_end_pm)
             result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
         
-        # 当天22:00前正常打卡
+        # 当天22:00前正常打卡（早退）
         elif valid_night_punch <= work_end_pm:
+            # 计算早退时间（规定下班时间 - 实际打卡时间）
+            early_h, early_m = time_diff_in_hours(work_end_pm, valid_night_punch)
+            # 仅保留小时数（可根据需求选择向上取整或向下取整）
+            total_early_hours = early_h + (1 if early_m > 0 else 0)  # 向上取整（如30分钟→1小时）
+            # total_early_hours = early_h  # 向下取整（如30分钟→0小时）
+            result['早退时间'] = f"{total_early_hours}小时"
+            
             rounded_time = round_down_to_hour(valid_night_punch)
             result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡-早退"
-            # result['下班卡类型'] = "22:00下班卡-早退"
             result['晚上加班时长(小时)'] = 0.0
         
         # 其他异常时间（7:00-22:00之间非加班时段）
@@ -267,7 +280,6 @@ def process_afternoon_shift(row):
             result['下班卡类型'] = f"{valid_night_punch.strftime('%H:%M')}（异常下班）"
             result['晚上加班时长(小时)'] = "异常"
     else:
-        
         result['下班卡类型'] = "缺卡"
 
     # 4. 综合打卡状态
@@ -286,7 +298,7 @@ def process_afternoon_shift(row):
 def process_night_shift(row):
     """处理晚班打卡数据"""
     result = {
-        '上班卡类型': "", '迟到时间': "0分钟",
+        '上班卡类型': "", '迟到时间': "0分钟", '早退时间': "0分钟",  # 新增早退时间列
         '中午下班卡类型': "", '中午上班卡类型': "", '白天加班时长(小时)': "",
         '下班卡类型': "", '晚上加班时长(小时)': "", '打卡状态': ""
     }
@@ -294,7 +306,6 @@ def process_night_shift(row):
     # 解析所有打卡时间
     punches = {
         'first': parse_time(row['第一次打卡']),
-        
         'second': parse_time(row['第二次打卡']),
         'third': None,
         'fourth': None
@@ -339,13 +350,14 @@ def process_night_shift(row):
     for p in ['second']:
         if punches[p]:
             valid_morning_punch = punches[p]
-            print(valid_morning_punch)
 
     if valid_morning_punch:
         if valid_morning_punch <= work_end:
-            result['下班卡类型'] = "02:00下班卡"
+            # 计算早退时间（规定下班时间 - 实际打卡时间）
+            early_h, early_m = time_diff_in_hours(work_end, valid_morning_punch)
+            total_early_hours = early_h + (1 if early_m > 0 else 0)  # 向上取整（如30分钟→1小时）
+            result['早退时间'] = f"{total_early_hours}小时"
             result['晚上加班时长(小时)'] = 0.0
-            # 02:00后且9:00前打卡 - 计算加班
         elif work_end < valid_morning_punch <= overtime_limit:
             rounded_time = round_down_to_hour(valid_morning_punch)
             result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡"
@@ -354,25 +366,6 @@ def process_night_shift(row):
             result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
     else:
         result['下班卡类型'] = "缺卡"
-
-    #     elif (valid_morning_punch >= work_end) or (valid_morning_punch <= absence_limit_SYSTEM_REST_TIME):
-    #         rounded_time = round_down_to_hour(valid_morning_punch)
-    #         result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡"
-
-    #         if valid_morning_punch >= work_end:
-    #             ot_h, ot_m = time_diff_in_hours(rounded_time, work_end)
-    #         else:
-    #             hours_pm = 24 - (work_end.hour + work_end.minute / 60)
-    #             hours_am = rounded_time.hour + rounded_time.minute / 60
-    #             total_overtime = hours_pm + hours_am
-    #             ot_h = int(total_overtime)
-    #             ot_m = int(round((total_overtime - ot_h) * 60))
-
-    #         result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
-    #     else:
-    #         result['下班卡类型'] = "02:00下班卡"
-    # else:
-    #     result['下班卡类型'] = "缺卡"
 
     # 3. 综合打卡状态
     if result['上班卡类型'] == "缺勤":
@@ -388,7 +381,7 @@ def process_night_shift(row):
 def process_logistics(row):
     """处理后勤部打卡数据"""
     result = {
-        '上班卡类型': "", '迟到时间': "",
+        '上班卡类型': "", '迟到时间': "", '早退时间': "",  # 新增早退时间列
         '中午下班卡类型': "", '中午上班卡类型': "", '白天加班时长(小时)': "",
         '下班卡类型': "", '晚上加班时长(小时)': "", '打卡状态': ""
     }
@@ -442,9 +435,9 @@ for sheet_name in wb.sheetnames:
         print(f"警告：工作表 '{sheet_name}' 缺少必要列 {missing_cols}，已跳过")
         continue
 
-    # 新增处理结果列
+    # 新增处理结果列（包含早退时间）
     result_cols = [
-        '上班卡类型', '迟到时间',
+        '上班卡类型', '迟到时间', '早退时间',  # 新增早退时间列
         '中午下班卡类型', '中午上班卡类型', '白天加班时长(小时)',
         '下班卡类型', '晚上加班时长(小时)', '打卡状态'
     ]

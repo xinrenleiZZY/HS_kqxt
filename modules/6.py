@@ -40,6 +40,16 @@ else:
             minutes = int(m_part) if m_part.isdigit() else 0
         return hours * 60 + minutes  # 返回总分钟数
 
+    # 处理早退时间转换函数（将"X小时"转换为小时数）
+    def parse_early_leave(time_str):
+        if pd.isna(time_str) or str(time_str).strip() in ["", "0小时"]:
+            return 0.0
+        time_str = str(time_str).strip()
+        if '小时' in time_str:
+            h_part = time_str.split('小时')[0]
+            return float(h_part) if h_part.isdigit() else 0.0
+        return 0.0
+
     # 转换分钟数为时间字符串
     def format_late_time(total_minutes):
         if total_minutes == 0:
@@ -53,18 +63,31 @@ else:
             parts.append(f"{minutes}分钟")
         return "".join(parts)
 
-    # 分组统计函数
+    # 分组统计函数（包含早退时间处理）
     def aggregate_func(group, sheet_name):
         work_days = group[group['打卡状态'] == '正常'].shape[0]
         attendance_hours = work_days * 8
         day_ot = group['白天加班时长(小时)'].sum()
         night_ot = group['晚上加班时长(小时)'].sum()
         subsidy_ot = group['夜班补贴时长(小时)'].sum()
-        total_hours = attendance_hours + day_ot + night_ot + subsidy_ot
+        
+        # 计算早退总小时数（新增）
+        if '早退时间' in group.columns:
+            group['早退小时数'] = group['早退时间'].apply(parse_early_leave)
+            zt_ot = group['早退小时数'].sum()
+            total_early_leave = zt_ot  # 保留原始早退小时数用于显示
+        else:
+            zt_ot = 0
+            total_early_leave = 0
+        
+        # 总工时计算（扣除早退时间）
+        total_hours = attendance_hours + day_ot + night_ot + subsidy_ot - zt_ot
 
+        # 迟到时间处理
         total_late_minutes = group['迟到分钟数'].sum()
         late_str = format_late_time(total_late_minutes)
 
+        # 基础信息
         dept = group['部门'].iloc[0] if not group['部门'].empty else ""
         shift = group['班次'].iloc[0] if not group['班次'].empty else ""
         
@@ -76,6 +99,7 @@ else:
             '出勤时间': attendance_hours,
             '白天加班': round(day_ot, 1),
             '晚上加班': round(night_ot, 1),
+            '早退时间(小时)': round(total_early_leave, 1),  # 新增：显示每日早退小时数
             '出勤总工时': round(total_hours, 1),
             '夜班补贴': round(subsidy_ot, 1),
             '迟到总时间': late_str
@@ -87,11 +111,15 @@ else:
         for sheet in process_sheets:
             df = pd.read_excel(xls, sheet_name=sheet)
             
-            # 检查必要列
+            # 检查必要列（新增早退时间列检查）
             required_cols = [
                 '姓名', '员工ID', '部门', '班次', '打卡状态',
                 '白天加班时长(小时)', '晚上加班时长(小时)', '迟到时间', '夜班补贴时长(小时)'
             ]
+            # 早退时间列非必需，仅做提示
+            if '早退时间' not in df.columns:
+                print(f"警告：工作表 {sheet} 缺少'早退时间'列，将按0处理")
+            
             missing_cols = [col for col in required_cols if col not in df.columns]
             if missing_cols:
                 print(f"警告：工作表 {sheet} 缺少列 {missing_cols}，已跳过")
@@ -108,17 +136,18 @@ else:
                 lambda x: aggregate_func(x, sheet)
             ).reset_index()
             
-            # 调整列顺序
+            # 调整列顺序（新增早退时间列）
             daily_summary = daily_summary[['日期', '姓名', '员工ID', '部门', '班次',
                                            '上班天数', '出勤时间', '白天加班',
-                                           '晚上加班', '出勤总工时', '夜班补贴', '迟到总时间']]
+                                           '晚上加班', '早退时间(小时)',  # 新增列
+                                           '出勤总工时', '夜班补贴', '迟到总时间']]
             
             # 写入当前工作表的统计结果
             daily_summary.to_excel(writer, sheet_name=f'{sheet}_统计', index=False)
             daily_summaries.append(daily_summary)
             print(f"已生成 {sheet} 的每日统计")
 
-        # 2. 生成总汇总表（所有日期合并）
+        # 2. 生成总汇总表（所有日期合并，包含早退汇总）
         if daily_summaries:
             all_daily = pd.concat(daily_summaries, ignore_index=True)
             
@@ -133,15 +162,17 @@ else:
                 '总出勤时间': group['出勤时间'].sum(),
                 '总白天加班': round(group['白天加班'].sum(), 1),
                 '总晚上加班': round(group['晚上加班'].sum(), 1),
+                '总早退时间(小时)': round(group['早退时间(小时)'].sum(), 1),  # 新增：总早退时间
                 '总出勤总工时': round(group['出勤总工时'].sum(), 1),
                 '总夜班补贴': round(group['夜班补贴'].sum(), 1),
-                '总迟到时间': format_late_time(group['迟到总分钟数'].sum())  # 汇总后转换为字符串
+                '总迟到时间': format_late_time(group['迟到总分钟数'].sum())
             })).reset_index()
             
-            # 调整总汇总列顺序
+            # 调整总汇总列顺序（新增总早退时间列）
             total_summary = total_summary[['姓名', '员工ID', '部门', '班次',
                                            '总上班天数', '总出勤时间', '总白天加班',
-                                           '总晚上加班', '总出勤总工时', '总夜班补贴', '总迟到时间']]
+                                           '总晚上加班', '总早退时间(小时)',  # 新增列
+                                           '总出勤总工时', '总夜班补贴', '总迟到时间']]
             
             # 写入总汇总表
             total_summary.to_excel(writer, sheet_name='总汇总统计', index=False)

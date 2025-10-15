@@ -40,7 +40,8 @@ for sheet_name in wb.sheetnames:
 
     # 处理打卡时间列，按";"拆分
     # 最多拆分为4列（第一次到第四次打卡）
-    punch_times = df['打卡时间'].str.split(';', expand=True, n=3)
+    punch_times = df['打卡时间'].astype(str).str.split(';', expand=True, n=3)
+    punch_times = punch_times.reindex(columns=range(4))  # 确保有4列
     punch_times.columns = ['第一次打卡', '第二次打卡', '第三次打卡', '第四次打卡']
 
     # 合并原始数据和拆分后的打卡时间
@@ -50,7 +51,7 @@ for sheet_name in wb.sheetnames:
     # 确保时间格式正确（去除可能的空字符）
     for col in ['第一次打卡', '第二次打卡', '第三次打卡', '第四次打卡']:
         if col in result_df.columns:
-            result_df[col] = result_df[col].str.strip()
+            result_df[col] = result_df[col].astype(str).str.strip()
 
 
     # 新增：添加班次列

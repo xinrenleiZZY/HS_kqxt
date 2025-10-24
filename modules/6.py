@@ -81,7 +81,7 @@ else:
             total_early_leave = 0
         
         # 总工时计算（扣除早退时间）
-        total_hours = attendance_hours + day_ot + night_ot + subsidy_ot - zt_ot
+        total_hours = attendance_hours + day_ot + night_ot - zt_ot
 
         # 迟到时间处理
         total_late_minutes = group['迟到分钟数'].sum()

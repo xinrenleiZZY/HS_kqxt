@@ -250,7 +250,7 @@ def process_afternoon_shift(row):
             # 计算跨天加班时长（22:00到次日打卡时间）
             hours_pm = 24 - (work_end_pm.hour + work_end_pm.minute / 60)
             hours_am = rounded_time.hour + rounded_time.minute / 60
-            total_overtime = hours_pm + hours_am
+            total_overtime = hours_pm + hours_am - 0.5 # 减去0.5小时 23.30-24.00休息
             ot_h = int(total_overtime)
             ot_m = int(round((total_overtime - ot_h) * 60))
             result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
@@ -361,9 +361,16 @@ def process_night_shift(row):
         elif work_end < valid_morning_punch <= overtime_limit:
             rounded_time = round_down_to_hour(valid_morning_punch)
             result['下班卡类型'] = f"{rounded_time.strftime('%H:%M')}下班卡"
-
+            # 计算原始加班时长（时/分）
             ot_h, ot_m = time_diff_in_hours(rounded_time, work_end)
-            result['晚上加班时长(小时)'] = max(0, round(ot_h + ot_m / 60, 1))
+            # 转换为总分钟数，减去30分钟（0.5小时），避免负数
+            total_min = ot_h * 60 + ot_m - 30
+            total_min = max(0, total_min)  # 确保不出现负时长
+            # 重新拆分为时/分
+            new_ot_h = total_min // 60
+            new_ot_m = total_min % 60
+            # 计算最终加班小时数（保留1位小数）
+            result['晚上加班时长(小时)'] = round(new_ot_h + new_ot_m / 60, 1)
     else:
         result['下班卡类型'] = "缺卡"
 

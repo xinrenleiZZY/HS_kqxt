@@ -1,0 +1,21 @@
+{
+  "name": "attendance-system-api",
+  "version": "1.0.0",
+  "description": "考勤管理系统后端API",
+  "main": "api_server.py",
+  "scripts": {
+    "start": "uvicorn api_server:app --host 0.0.0.0 --port $PORT"
+  },
+  "dependencies": {
+    "fastapi": "^0.104.1",
+    "uvicorn": "^0.24.0",
+    "python-multipart": "^0.0.6",
+    "pandas": "^2.2.2",
+    "openpyxl": "^3.1.2",
+    "python-jose": "^3.3.0",
+    "passlib": "^1.7.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

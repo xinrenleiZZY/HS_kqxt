@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考勤统计系统 - 操作文档</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2e50c3;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --light-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-light: #666666;
+            --border: #e1e4e8;
+            --code-bg: #f6f8fa;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'SimHei', Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text);
+            background-color: var(--light-bg);
+            padding: 0;
+            margin: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 飞花特效容器 */
+        #flower-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 200; /* 确保内容在飞花之上 */
+        }
+        
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow);
+        }
+        
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo img {
+            max-width: 50px;
+            max-height: 50px;
+        }
+        
+        .header-text h1 {
+            font-size: 28px;
+            color: white;
+            margin-bottom: 5px;
+        }
+        
+        .header-text .version {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+        }
+        
+        h1, h2, h3, h4 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+        
+        h1 {
+            font-size: 32px;
+        }
+        
+        h2 {
+            font-size: 24px;
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+        
+        h3 {
+            font-size: 20px;
+            margin-top: 30px;
+            color: var(--secondary);
+        }
+        
+        p {
+            margin-bottom: 18px;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 18px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        a {
+            color: var(--secondary);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        th {
+            background-color: var(--light-bg);
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        pre {
+            background-color: var(--code-bg);
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .toc {
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+        
+        .toc ul {
+            list-style-type: none;
+            margin-left: 0;
+        }
+        
+        .toc li {
+            margin-bottom: 10px;
+        }
+        
+        .toc a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .note {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid var(--secondary);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .warning {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .faq-item {
+            margin-bottom: 25px;
+        }
+        
+        .faq-question {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+            color: var(--text-light);
+            border-top: 1px solid var(--border);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: var(--secondary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 26px;
+                color: white;
+            }
+            
+            h2 {
+                font-size: 22px;
+            }
+            
+            h3 {
+                font-size: 18px;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 飞花特效容器 -->
+    <div id="flower-container"></div>
+
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <img src="icon/favicon.ico" alt="Logo">
+            </div>
+            <div class="header-text">
+                <h1>考勤统计系统 - 操作文档</h1>
+                <div class="version">版本: v3.0.0 | 生成日期: 2025-10-15</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- 目录 -->
+        <div class="card toc">
+            <h2><i class="fas fa-list-ul"></i> 目录</h2>
+            <ul>
+                <li><a href="#intro"><i class="fas fa-info-circle"></i> 1. 软件简介</a></li>
+                <li><a href="#installation"><i class="fas fa-download"></i> 2. 安装指南（跳过）</a></li>
+                <li><a href="#features"><i class="fas fa-cogs"></i> 3. 功能说明</a></li>
+                <li><a href="#steps"><i class="fas fa-walking"></i> 4. 操作步骤（快捷指引：点击此处）</a></li>
+                <li><a href="#structure"><i class="fas fa-folder-tree"></i> 5. 文件结构（跳过）</a></li>
+                <li><a href="#development"><i class="fas fa-code"></i> 6. 开发与打包（跳过）</a></li>
+                <li><a href="#faq"><i class="fas fa-question-circle"></i> 7. 常见问题</a></li>
+                <li><a href="#contact"><i class="fas fa-envelope"></i> 8. 联系方式</a></li>
+            </ul>
+        </div>
+
+        <!-- 软件简介 -->
+        <div id="intro" class="card">
+            <h2><i class="fas fa-info-circle"></i> 1. 软件简介</h2>
+            <p>考勤统计系统是专为广东何氏模具有限公司设计的考勤统计系统打卡时间统计工具，主要用于自动化处理****数据，生成标准化的报表，提高财务工作效率。</p>
+            
+            <h3>核心功能:</h3>
+            <ul>
+                <li><i class="fas fa-check-circle"></i> 文件预处理工具</li>
+                <li><i class="fas fa-check-circle"></i> 考勤系统统计网站</li>
+                <li><i class="fas fa-check-circle"></i> Excel打卡记录处理</li>
+            </ul>
+        </div>
+
+        <!-- 安装指南 -->
+        <div id="installation" class="card">
+            <h2><i class="fas fa-download"></i> 2. 安装指南（跳过）</h2>
+            <h3>2.1 系统要求</h3>
+            <table>
+                <tr><th>项目</th><th>要求</th></tr>
+                <tr><td>操作系统</td><td>Windows 7/8/10/11（32位或64位）</td></tr>
+                <tr><td>最低配置</td><td>2GB内存，500MB可用磁盘空间</td></tr>
+                <tr><td>依赖软件</td><td>Excel（支持.xlsx和.xls格式）</td></tr>
+            </table>
+            
+            <h3>2.2 安装步骤</h3>
+            <ol>
+                <li><span class="step-number">1</span>下载最新版本的安装包（<code>考勤统计系统_Setup.exe</code>）</li>
+                <li><span class="step-number">2</span>双击安装包，启动安装程序</li>
+                <li><span class="step-number">3</span>在安装向导中，点击"下一步"</li>
+                <li><span class="step-number">4</span>阅读并同意用户许可协议</li>
+                <li><span class="step-number">5</span>选择安装目录（默认路径：<code>C:\Program Files\考勤统计系统</code>）</li>
+                <li><span class="step-number">6</span>点击"安装"，等待安装完成</li>
+                <li><span class="step-number">7</span>安装完成后，勾选"运行考勤统计系统"，点击"完成"</li>
+            </ol>
+        </div>
+
+        <!-- 功能说明 -->
+        <div id="features" class="card">
+            <h2><i class="fas fa-cogs"></i> 3. 功能说明</h2>
+            <h3>3.1 主要功能模块</h3>
+            <table>
+                <tr><th>功能</th><th>说明</th><th>可访问网站</th></tr>
+                <tr><td>文件预处理工具网站</td><td>结合打卡记录和员工信息生成供统计的原始文件数据</td><td>https://hsclexcel-01.streamlit.app/</td></tr>
+                <tr><td>考勤系统统计网站</td><td>处理发票和流水数据，生成报表</td><td>https://hskqxt.streamlit.app/</td></tr>
+            </table>
+        </div>
+
+        <!-- 操作步骤 -->
+        <div id="steps" class="card">
+            <h2><i class="fas fa-walking"></i> 4. 操作步骤</h2>
+            <div class="note">
+                <strong>完整处理流程：</strong>打开网站，点击上传 → 处理数据 → 下载文件
+            </div>
+            
+            <h3>4.1 第一步：打开文件预处理工具网站</h3>
+            <ol>
+                <li>打开网站（https://hsclexcel-01.streamlit.app/），点击"Browse files"按钮</li>
+                <li>根据指引分别上传两个文件</li>
+                <li>点击 开始处理文件</li>
+                <li>点击 下载保存结果</li>
+                <li>下载后保存好文件（例如：上下班打卡_月报原始数据_8月.xlsx），并且打开修正原始数据(!!!严格修正)。</li>
+            </ol>
+            
+            <h3>4.2 第二步：打开考勤系统统计网站</h3>
+            <ol>
+                <li>打开网站（https://hskqxt.streamlit.app/）</li>
+                <li>点击左上角的">"按钮，调出菜单</li>
+                <li>点击"Browse files"按钮，上传处理后的原始数据，例如：上下班打卡_月报原始数据_8月.xlsx</li>
+                <li>点击 开始处理Excel文件</li>
+                <li>处理完成后，在“选择要下载的文件”可下载相关文件（打卡数据汇总统计.xlsx  全班次处理后的打卡数据.xlsx）</li>
+            </ol>
+            
+        </div>
+
+        <!-- 文件结构 -->
+        <div id="structure" class="card">
+            <h2><i class="fas fa-folder-tree"></i> 5. 文件结构（忽略）</h2>
+            <pre>HS3.5/
+├── icons/                  # 图标文件夹
+├── python/   
+|   ├──dist
+|   |   ├──cat_errer.exe        # 错误检查工具
+|   |   ├──工作流json信息.exe    # JSON配置生成工具
+|   |   └──one_HsZZexcel_end.exe # 核心数据处理工具  
+│   ├── one_HsZZexcel_end.py    # 核心处理脚本
+│   ├── cat_errer.py            # 错误检查脚本
+│   ├── 工作流json信息.py        # JSON配置生成脚本
+│   └── requirements.txt        # Python依赖清单
+├── src/                        # Electron源码
+│   ├── main.js                 # 主进程
+│   ├── preload.js              # 预加载脚本
+│   └── renderer.js             # 渲染进程
+├── index.html                  # 主页面
+├── package.json                # 项目配置
+└── README.md                   # 说明文档</pre>
+        </div>
+
+        <!-- 开发与打包 -->
+        <div id="development" class="card">
+            <h2><i class="fas fa-code"></i> 6. 开发与打包</h2>
+            <h3>6.1 开发依赖</h3>
+            <p>Python依赖:</p>
+            <pre>pandas==2.1.4
+openpyxl==3.1.2
+tqdm==4.66.1</pre>
+            
+            <h3>6.2 打包命令</h3>
+            <table>
+                <tr><th>命令</th><th>说明</th></tr>
+                <tr><td><code>npm run start</code></td><td>electron --disable-gpu --disable-software-rasterizer --no-sandbox --disable-web-security .</td></tr>
+<tr><td><code>npm run package</code></td><td>electron-builder --dir</td></tr>
+<tr><td><code>npm run dist</code></td><td>electron-builder</td></tr>
+<tr><td><code>npm run dist:zip</code></td><td>electron-builder --win --x64</td></tr>
+<tr><td><code>npm run install:py</code></td><td>cd python && pip install -r requirements.txt</td></tr>
+<tr><td><code>npm run pyinstaller</code></td><td>npm run install:py && cd python && pyinstaller --onefile --noconsole one_HsZZexcel_end.py && pyinstaller --onefile --noconsole cat_errer.py && pyinstaller --onefile --noconsole 工作流json信息.py && xcopy /E /I dist dist_out && xcopy /E /I dist_out ..\python_dist</td></tr>
+<tr><td><code>npm run generate-docs</code></td><td>python generate_docs.py</td></tr>
+<tr><td><code>npm run prepackage</code></td><td>node copy-resources.js</td></tr>
+<tr><td><code>npm run predist</code></td><td>node copy-resources.js</td></tr>
+<tr><td><code>npm run dist-with-docs</code></td><td>npm run generate-docs && npm run dist</td></tr>
+
+            </table>
+        </div>
+
+        <!-- 常见问题 -->
+        <div id="faq" class="card">
+            <h2><i class="fas fa-question-circle"></i> 7. 常见问题</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question"><i class="fas fa-exclamation-circle"></i> 工具启动失败</div>
+                <ul>
+                    <li>检查是否有管理员权限</li>
+                    <li>确认系统是否满足最低配置要求</li>
+                    <li>尝试重新安装应用</li>
+                </ul>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question"><i class="fas fa-exclamation-circle"></i> 处理文件时提示错误</div>
+                <ul>
+                    <li>检查输入文件格式是否正确</li>
+                    <li>确认文件内容是否包含所需的必要列</li>
+                    <li>检查文件是否被其他程序占用</li>
+                </ul>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question"><i class="fas fa-exclamation-circle"></i> JSON配置文件无法生成</div>
+                <ul>
+                    <li>确认<code>D:/one_json/</code>目录是否存在，如不存在请手动创建</li>
+                    <li>检查是否有该目录的写入权限</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 联系方式 -->
+        <div id="contact" class="card">
+            <h2><i class="fas fa-envelope"></i> 8. 联系方式</h2>
+            <p>如在使用过程中遇到任何问题，请联系广东何氏模具有限公司 IT部</p>
+            <p><i class="fas fa-envelope"></i> 联系邮箱：2787326121@qq.com</p>
+            <p><i class="fas fa-phone"></i> 联系电话：18072740843</p>
+        </div>
+
+        <footer>
+            © 2025 广东何氏模具有限公司 版权所有
+        </footer>
+    </div>
+
+    <script>
+        // 飞花特效实现
+        (function() {
+            const container = document.getElementById('flower-container');
+            
+            // 设置容器尺寸为窗口大小
+            function resizeContainer() {
+                container.style.width = `${window.innerWidth}px`;
+                container.style.height = `${window.innerHeight}px`;
+            }
+            
+            resizeContainer();
+            window.addEventListener('resize', resizeContainer);
+            
+            // 花瓣图案和颜色
+            const petals = ['❀', '✿', '❁', '🌼', '🌸', '💮'];
+            const colors = ['#FF69B4', '#FFD700', '#9370DB', '#3CB371', '#1E90FF', '#FF6347'];
+            const petalCount = 180; // 花瓣数量
+            
+            // 创建花瓣元素
+            function createPetal() {
+                const petal = document.createElement('div');
+                
+                // 随机选择花瓣图案和颜色
+                petal.textContent = petals[Math.floor(Math.random() * petals.length)];
+                petal.style.color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // 随机大小、位置和动画
+                const size = Math.random() * 20 + 10; // 10-30px
+                petal.style.fontSize = `${size}px`;
+                petal.style.position = 'absolute';
+                petal.style.top = `-${size}px`; // 从顶部外开始
+                petal.style.left = `${Math.random() * 100}%`;
+                petal.style.opacity = Math.random() * 0.7 + 0.3; // 0.3-1.0
+                petal.style.animation = `
+                    fall ${Math.random() * 10 + 10}s linear infinite,
+                    sway ${Math.random() * 3 + 2}s ease-in-out infinite alternate
+                `;
+                petal.style.transform = `rotate(${Math.random() * 360}deg)`;
+                petal.style.animationDelay = `${Math.random() * 10}s`;
+                
+                container.appendChild(petal);
+                
+                // 花瓣移除（动画结束后）
+                setTimeout(() => {
+                    petal.remove();
+                }, 2000000);
+            }
+            
+            // 创建花瓣样式
+            const style = document.createElement('style');
+            style.textContent = `
+                 @keyframes fall {
+                    0% {
+                        transform: translateY(0) rotate(0deg) translateX(-50px) rotate(0deg);
+                    }
+                    20% {
+                        transform: translateY(${0.2 * window.innerHeight}px) rotate(0.2 * 360deg) translateX(50px) rotate(${(Math.random() * 40) - 20}deg);
+                    }
+                    40% {
+                        transform: translateY(${0.4 * window.innerHeight}px) rotate(0.4 * 360deg) translateX(50px) rotate(${(Math.random() * 40) - 20}deg);
+                    }
+                    60% {
+                        transform: translateY(${0.6 * window.innerHeight}px) rotate(0.6 * 360deg) translateX(50px) rotate(${(Math.random() * 40) - 20}deg);
+                    }
+                    80% {
+                        transform: translateY(${0.8 * window.innerHeight}px) rotate(0.8 * 360deg) translateX(50px) rotate(${(Math.random() * 40) - 20}deg);
+                    }
+                    100% {
+                        transform: translateY(${window.innerHeight}px) rotate(360deg) translateX(50px) rotate(${(Math.random() * 40) - 20}deg);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 初始创建花瓣
+            for (let i = 0; i < petalCount; i++) {
+                createPetal();
+            }
+            
+            // 定时补充花瓣
+            setInterval(createPetal, 1000);
+        })();
+    </script>
+</body>
+</html>
